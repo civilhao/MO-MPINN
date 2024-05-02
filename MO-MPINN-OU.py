@@ -1,19 +1,5 @@
 #  Description: The MO-MPINN for solving two-dimensional DR-PDEE of 
 #  eight-dimensional Ornstein-Uhlenbeck process with random stiffness
-#  ========================================================
-#  ====        Authors:         	Teng-Teng Hao   =======
-#  ====        Creation Date:   	2024/05/02      =======
-#  ====        Modfication Date:	2024/05/02      =======
-#  ========================================================
-#
-# input--------------------------------------------------------------------
-
-
-
-
-
-
-
 
 import tensorflow as tf
 import scipy.optimize
