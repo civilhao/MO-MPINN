@@ -17,4 +17,5 @@ The neural network code for the PINN part is based on the work of Prateek Bhusta
 
 # Citation
 If you use this framework, please cite the following paper:
+
 Teng-Teng Hao; Wang-Ji Yan; Jian-Bing Chen; Ting-Ting Sun; Ka-Veng Yuen [J] Multi-Output Multi-Physics-Informed Neural Network for Learning Dimension-Reduced Probability Density Evolution Equation with Unknown Spatio-Temporal-Dependent Coefficients
