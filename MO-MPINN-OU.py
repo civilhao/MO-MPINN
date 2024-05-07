@@ -1,4 +1,4 @@
-#  Description: The MO-MPINN for solving two-dimensional DR-PDEE of 
+#  Description: The MO-MPINN for solving two-dimensional DR-PDEE of
 #  eight-dimensional Ornstein-Uhlenbeck process with random stiffness
 
 import tensorflow as tf
@@ -19,8 +19,8 @@ config.gpu_options.per_process_gpu_memory_fraction = 0.99
 sess = tf.compat.v1.Session(config=config)
 
 # generates same random numbers each time
-np.random.seed(1234)
-tf.random.set_seed(1234)
+# np.random.seed(1234)
+# tf.random.set_seed(1234)
 
 # Get the current working directory folder path
 path = os.getcwd()
@@ -52,9 +52,16 @@ x_p_low, x_p_up = np.hstack([y_low, t0]), np.hstack([y_up, t_end])
 
 
 def generator_x_for_y(Num_x):
-    np.random.seed(1111)
+    # np.random.seed(1111)
     xt_lhs = x_p_low.reshape(1, -1) + lhs(2, Num_x) * (x_p_up - x_p_low)
     return xt_lhs
+
+
+def generator_grid_x(Nxl_one, t_one):
+    x_one = np.linspace(x_p_low[0], x_p_up[0], Nxl_one)
+    t_grid = np.ones_like(x_one) * t_one
+    xt_one = np.stack([np.ravel(x_one), np.ravel(t_grid)], axis=1)
+    return xt_one
 
 
 def lowess(x):
@@ -192,7 +199,7 @@ class MlpPINN(tf.Module):
 
     @tf.function
     def loss_bcs(self, x_bc):
-        return tf.reduce_mean(tf.square(self.net_p(x_bc)))
+        return tf.reduce_mean(self.net_p(x_bc))
 
     @tf.function
     def loss_res(self, x_to_train_f):
@@ -222,9 +229,13 @@ class MlpPINN(tf.Module):
         return tf.reduce_mean(tf.square(self.net_a(x) - Ain_f))
 
     @tf.function
-    def loss(self, x_ic, y_ic, x_bc, x_f):
+    def loss_normal(self, x):
+        return tf.square(1 - tf.reduce_sum(self.net_p(x)) * dxl_one)
+
+    @tf.function
+    def loss(self, x_ic, y_ic, x_bc, x_f, x_one):
         loss = Weights[0] * self.loss_ics(x_ic, y_ic) + Weights[1] * self.loss_bcs(x_bc) + \
-               Weights[2] * self.loss_pde(x_f) + Weights[3] * self.loss_a(x_f)
+               Weights[2] * self.loss_pde(x_f) + Weights[3] * self.loss_a(x_f) + Weights[4] * self.loss_normal(x_one)
         return loss
 
     @tf.function
@@ -232,7 +243,7 @@ class MlpPINN(tf.Module):
         self.set_weights(parameters)
         with tf.GradientTape() as tape:
             tape.watch(self.trainable_variables)
-            loss_val = self.loss(x_ic_train, y_ic_train, x_bc_train, x_f_train)
+            loss_val = self.loss(x_ic_train, y_ic_train, x_bc_train, x_f_train, x_normal)
         grads = tape.gradient(loss_val, self.trainable_variables)
         del tape
         grads_1d = []  # flatten grads
@@ -247,23 +258,24 @@ class MlpPINN(tf.Module):
     def optimizer_callback(self, parameters):
         self.step_lbfgs += 1
         if self.step_lbfgs % 100 == 0:
-            loss_all.append(self.loss(x_ic_train, y_ic_train, x_bc_train, x_f_train))
+            loss_all.append(self.loss(x_ic_train, y_ic_train, x_bc_train, x_f_train, x_normal))
             loss_ics.append(self.loss_ics(x_ic_train, y_ic_train))
             loss_bcs.append(self.loss_bcs(x_bc_train))
             loss_res.append(self.loss_pde(x_f_train))
             loss_a.append(self.loss_a(x_f_train))
+            loss_one.append(self.loss_normal(x_normal))
             Elapsed = time.time() - start_time1
             U_pred = np.reshape(self.evaluate(XTpred), (-1, 2), order='F')
-            Loss_matrix = np.stack([loss_all, loss_ics, loss_bcs, loss_res, loss_a], axis=0).T
+            Loss_matrix = np.stack([loss_all, loss_ics, loss_bcs, loss_res, loss_a, loss_one], axis=0).T
             savemat('loss_matrix.mat', mdict={'loss_matrix': Loss_matrix})
             savemat('u_pred.mat', mdict={'u_pred': U_pred})
-            tf.print(self.step_lbfgs, Elapsed, loss_all[-1], loss_ics[-1], loss_bcs[-1], loss_res[-1], loss_a[-1])
+            tf.print(self.step_lbfgs, Elapsed, loss_all[-1], loss_ics[-1], loss_bcs[-1], loss_res[-1], loss_a[-1], loss_one[-1])
 
     @tf.function
     def adaptive_gradients(self):
         with tf.GradientTape() as tape:
             tape.watch(self.W)
-            loss_val = self.loss(x_ic_train, y_ic_train, x_bc_train, x_f_train)
+            loss_val = self.loss(x_ic_train, y_ic_train, x_bc_train, x_f_train, x_normal)
         grads = tape.gradient(loss_val, self.W)
         del tape
         return loss_val, grads
@@ -272,13 +284,17 @@ class MlpPINN(tf.Module):
 "--------------------------------------------Data generation, Parameter setting, Training---------------------------------------------"
 start_time0 = time.time()
 
-N_f = 50000
+N_f = 10000
 x_f_train = generator_x_for_y(N_f)
 Ain_f = lowess(x_f_train)
 
+Nxl_for_one, t_for_one = 101, x_p_up[1]
+dxl_one = (x_p_up[0] - x_p_low[0]) / (Nxl_for_one - 1)
+x_normal = generator_grid_x(Nxl_for_one, t_for_one)
+
 step_Pt, num_epochs, LBFGS_maxiter = 0, 5000, 20000
-Weights = [1000.0, 1.0, 1000.0, 1.0]
-loss_ics, loss_bcs, loss_res, loss_all, loss_a = [], [], [], [], []
+Weights = [100.0, 1.0, 1.0, 100.0, 1.0]
+loss_ics, loss_bcs, loss_res, loss_all, loss_a, loss_one = [], [], [], [], [], []
 
 layers_aint = [2] + [10] * 5 + [1]  # NN for aint
 layers_pdf = [2] + [10] * 5 + [1]  # NN for pdf
@@ -294,17 +310,18 @@ for epoch in range(num_epochs + 1):
         loss_bcs.append(mompinn.loss_bcs(x_bc_train))
         loss_res.append(mompinn.loss_pde(x_f_train))
         loss_a.append(mompinn.loss_a(x_f_train))
+        loss_one.append(mompinn.loss_normal(x_normal))
         u_pred = np.reshape(mompinn.evaluate(XTpred), (-1, 2), order='F')
         savemat('u_pred.mat', mdict={'u_pred': u_pred})
         para_mompinn = mompinn.get_weights().numpy()
         savemat('para_mompinn.mat', mdict={'para_mompinn': para_mompinn})
-        loss_matrix = np.stack([loss_all, loss_ics, loss_bcs, loss_res, loss_a], axis=0).T
+        loss_matrix = np.stack([loss_all, loss_ics, loss_bcs, loss_res, loss_a, loss_one], axis=0).T
         savemat('loss_matrix.mat', mdict={'loss_matrix': loss_matrix})
         dur, prog = time.time() - start_time0, (epoch + 1) * 100 // num_epochs
         print(
-            "\rTraining progress: {:d}% ({:d}/{:d}) {:.2f}s loss={:.5f}, {:.5f}, {:.5f}, {:.5f}, {:.5f}".format(
+            "\rTraining progress: {:d}% ({:d}/{:d}) {:.2f}s loss={:.5f}, {:.5f}, {:.5f}, {:.5f}, {:.5f}, {:.5f}".format(
                 prog, epoch + 1, num_epochs, dur,
-                loss_all[-1], loss_ics[-1], loss_bcs[-1], loss_res[-1], loss_a[-1]), end="")
+                loss_all[-1], loss_ics[-1], loss_bcs[-1], loss_res[-1], loss_a[-1], loss_one[-1]), end="")
 
 time_adam = time.time() - start_time0
 print("\n" + "Adam optimization execution is complete, go to the next step".center(100 // 2, "-"))
@@ -333,7 +350,7 @@ start_time2 = time.time()
 u_pred = np.reshape(mompinn.evaluate(XTpred), (-1, 2), order='F')
 time_pred = time.time() - start_time2
 time_all = time.time() - start_time0
-loss_matrix = np.stack([loss_all, loss_ics, loss_bcs, loss_res, loss_a], axis=0).T
+loss_matrix = np.stack([loss_all, loss_ics, loss_bcs, loss_res, loss_a, loss_one], axis=0).T
 time_cost = np.stack([time_all, time_adam, time_lbfgs, time_pred], axis=0).T
 savemat('mompinn_results.mat', {'u_pred': u_pred, 'loss_matrix': loss_matrix, 'time_cost': time_cost,
                                 'para_mompinn': para_mompinn})
