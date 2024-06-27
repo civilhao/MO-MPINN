@@ -13,7 +13,7 @@ The Dimension-Reduced Probability Density Evolution Equation (DR-PDEE), driven b
 To use the MO-MPINN framework, clone the repository and refer to the provided example of the eight-dimensional Ornstein-Uhlenbeck process with random stiffness. More details can be found in the paper.
 
 # Acknowledgements
-The neural network code for the PINN part is based on the work of Prateek Bhustali. You can find the original code at the following link [gh repo clone omniscientoctopus/Physics-Informed-Neural-Networks](https://github.com/omniscientoctopus/Physics-Informed-Neural-Networks.git).
+The code implementation of the PINN part patially references open-source repositories developed by Prateek Bhustali. You can find the original code at the following link [gh repo clone omniscientoctopus/Physics-Informed-Neural-Networks](https://github.com/omniscientoctopus/Physics-Informed-Neural-Networks.git).
 
 # Citation
 If you use this framework, please cite the following paper:
