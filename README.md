@@ -21,4 +21,3 @@ If you use this framework, please cite the following paper:
 Teng-Teng Hao, Wang-Ji Yan, Jian-Bing Chen, Ting-Ting Sun, Ka-Veng Yuen [J].Multi-output multi-physics-informed neural network for learning dimension-reduced probability density evolution equation with unknown spatio-temporal-dependent coefficients,
 Mechanical Systems and Signal Processing, 2024,220:111683.
 https://doi.org/10.1016/j.ymssp.2024.111683.
-(https://www.sciencedirect.com/science/article/pii/S0888327024005818)
