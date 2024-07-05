@@ -13,9 +13,12 @@ The Dimension-Reduced Probability Density Evolution Equation (DR-PDEE), driven b
 To use the MO-MPINN framework, clone the repository and refer to the provided example of the eight-dimensional Ornstein-Uhlenbeck process with random stiffness. More details can be found in the paper.
 
 # Acknowledgements
-The code implementation of the PINN part patially references open-source repositories developed by Prateek Bhustali. You can find the original code at the following link [gh repo clone omniscientoctopus/Physics-Informed-Neural-Networks](https://github.com/omniscientoctopus/Physics-Informed-Neural-Networks.git).
+We would like to acknowledge Prof. Bhustali for generously relieasing the code to the public, which served as a valuable reference for our research in programming. You can find the code of Prof. Bhustali at the following link [gh repo clone omniscientoctopus/Physics-Informed-Neural-Networks](https://github.com/omniscientoctopus/Physics-Informed-Neural-Networks.git).
 
 # Citation
 If you use this framework, please cite the following paper:
 
-Teng-Teng Hao; Wang-Ji Yan; Jian-Bing Chen; Ting-Ting Sun; Ka-Veng Yuen [J] Multi-Output Multi-Physics-Informed Neural Network for Learning Dimension-Reduced Probability Density Evolution Equation with Unknown Spatio-Temporal-Dependent Coefficients
+Teng-Teng Hao, Wang-Ji Yan, Jian-Bing Chen, Ting-Ting Sun, Ka-Veng Yuen [J].Multi-output multi-physics-informed neural network for learning dimension-reduced probability density evolution equation with unknown spatio-temporal-dependent coefficients,
+Mechanical Systems and Signal Processing, 2024,220:111683.
+https://doi.org/10.1016/j.ymssp.2024.111683.
+(https://www.sciencedirect.com/science/article/pii/S0888327024005818)
